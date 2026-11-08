@@ -98,6 +98,8 @@
             <button class="chip play sm" data-action="launch" data-name="${esc(i.name)}">${i.running ? "Läuft…" : "Starten"}</button>
             <button class="chip btn sm" data-action="stop" data-name="${esc(i.name)}">Stop</button>
             <button class="chip btn sm" data-action="edit" data-name="${esc(i.name)}">Bearbeiten</button>
+            <button class="chip btn sm" data-action="rename" data-name="${esc(i.name)}" style="font-size:10px;">✎</button>
+            <button class="chip btn sm" data-action="delete" data-name="${esc(i.name)}" style="color:var(--danger);font-size:10px;">✕</button>
           </div>`;
         grid.appendChild(card);
       }
@@ -112,6 +114,15 @@
             catch (e) { toast("Fehler: " + e); }
           } else if (b.dataset.action === "edit") {
             openModsModal(name);
+          } else if (b.dataset.action === "rename") {
+            const newName = prompt("Neuer Name:", name);
+            if (!newName || newName === name) return;
+            try { await invoke("rename_instance", { instance: name, newName }); toast("Umbenannt"); loadInstancesInto(view); }
+            catch (e) { toast("Fehler: " + e); }
+          } else if (b.dataset.action === "delete") {
+            if (!confirm("Instanz wirklich löschen? (Dateien bleiben erhalten)")) return;
+            try { await invoke("delete_instance", { instance: name }); toast("Gelöscht"); loadInstancesInto(view); }
+            catch (e) { toast("Fehler: " + e); }
           }
         });
       });
@@ -340,6 +351,20 @@ POST /api/v1/modpack/install  {"target":"url-oder-code"}</pre>
   // handled in renderLibrary
 
   function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+  // Drag & drop import
+  if (TAU.event && TAU.event.listen) {
+    TAU.event.listen("tauri://drag-drop", async (e) => {
+      const paths = e.payload?.paths || [];
+      for (const p of paths) {
+        const ext = p.split('.').pop().toLowerCase();
+        if (ext === "zip" || ext === "mrpack") {
+          try { const name = await invoke("import_path", { path: p }); toast("Importiert: " + name); renderView("library"); }
+          catch (err) { toast("Fehler: " + err); }
+        }
+      }
+    });
+  }
 
   // Init
   (async () => {

@@ -285,6 +285,48 @@ pub fn create_instance(state: State<AppState>, name: String, mc_version: String)
 }
 
 #[tauri::command]
+pub fn delete_instance(state: State<AppState>, instance: String) -> Result<(), String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    let inst = store.find_by_name(&instance).map_err(|e| e.to_string())?.ok_or("not found".to_string())?;
+    // Remove instance metadata (don't delete game files)
+    store.delete(&inst.id).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn rename_instance(state: State<AppState>, instance: String, new_name: String) -> Result<String, String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    let mut inst = store.find_by_name(&instance).map_err(|e| e.to_string())?.ok_or("not found".to_string())?;
+    inst.name = new_name;
+    inst.id = lachslauncher_core::util::slugify(&inst.name);
+    store.save(&inst).map_err(|e| e.to_string())?;
+    // Remove old dir if id changed
+    Ok(inst.id)
+}
+
+#[tauri::command]
+pub async fn import_path(state: State<'_, AppState>, path: String) -> Result<String, String> {
+    let ctx = state.ctx();
+    let p = std::path::PathBuf::from(&path);
+    if !p.exists() { return Err("file not found".to_string()); }
+    let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let name = p.file_stem().and_then(|s| s.to_str()).unwrap_or("imported").to_string();
+    let instance_dir = ctx.cfg.instances_dir.join(lachslauncher_core::util::slugify(&name));
+    std::fs::create_dir_all(&instance_dir).map_err(|e| e.to_string())?;
+    if ext == "zip" || ext == "mrpack" {
+        let cf = ctx.cfg.curseforge_api_key.clone().map(|k| lachslauncher_core::curseforge::CfClient::new(ctx.http.clone(), k));
+        let inst = lachslauncher_core::curseforge::install_modpack_zip(&ctx.http, &ctx.cfg, cf.as_ref(), &p, &instance_dir, &name).await.map_err(|e| e.to_string())?;
+        let store = InstanceStore::new(&ctx.cfg);
+        store.save(&inst).map_err(|e| e.to_string())?;
+        Ok(inst.name)
+    } else {
+        Err("unsupported file type".to_string())
+    }
+}
+
+#[tauri::command]
 pub fn discord_status(state: State<AppState>) -> String {
     let ctx = state.ctx();
     if ctx.cfg.discord.client_id.is_some() { "configured".into() } else { "not configured".into() }
