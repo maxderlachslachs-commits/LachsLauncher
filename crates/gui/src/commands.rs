@@ -167,6 +167,12 @@ pub async fn login(state: State<'_, AppState>) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub fn is_logged_in(state: State<AppState>) -> bool {
+    let ctx = state.ctx();
+    !ctx.cfg.auth.username.is_empty() && ctx.cfg.auth.username != "Player" && ctx.cfg.auth.access_token.is_some()
+}
+
+#[tauri::command]
 pub fn discord_status(state: State<AppState>) -> String {
     let ctx = state.ctx();
     if ctx.cfg.discord.client_id.is_some() { "configured".into() } else { "not configured".into() }

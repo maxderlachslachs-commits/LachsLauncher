@@ -12,7 +12,7 @@ tauri-build = { workspace = true }
 
 [dependencies]
 lachslauncher-core = { path = "../core" }
-tauri = { workspace = true }
+tauri = { workspace = true, features = ["tray-icon"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

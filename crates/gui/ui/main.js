@@ -139,6 +139,31 @@
     } catch (e) { console.error("loadSettings:", e); }
   }
 
+  // Login gate
+  async function checkLogin() {
+    try {
+      const loggedIn = await invoke("is_logged_in");
+      const gate = $("#login-gate");
+      if (loggedIn) { if (gate) gate.classList.add("hidden"); return true; }
+      if (gate) gate.classList.remove("hidden");
+      return false;
+    } catch (e) { return false; }
+  }
+
+  const btnLoginGate = $("#btn-login-gate"); if (btnLoginGate) btnLoginGate.addEventListener("click", async () => {
+    const st = $("#login-gate-status"); if (st) st.textContent = "Login läuft… (Link+Code in Konsole)";
+    try {
+      const r = await invoke("login");
+      if (st) st.textContent = "Eingeloggt: " + r;
+      const gate = $("#login-gate"); if (gate) gate.classList.add("hidden");
+      loadInstances(); loadSettings();
+      toast("Login OK");
+    } catch (e) { if (st) st.textContent = "Fehler: " + e; toast("Fehler: " + e); }
+  });
+
   // Init
-  try { loadInstances(); loadSettings(); } catch (e) { console.error("init:", e); toast("Init-Fehler: " + e); }
+  (async () => {
+    const ok = await checkLogin();
+    if (ok) { loadInstances(); loadSettings(); }
+  })();
 })();
