@@ -4,8 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.lachs.launcher",
   "build": {
-    "frontendDist": "../ui",
-    "devUrl": "http://localhost:1420",
+    "frontendDist": "./ui",
     "beforeDevCommand": "",
     "beforeBuildCommand": ""
   },
