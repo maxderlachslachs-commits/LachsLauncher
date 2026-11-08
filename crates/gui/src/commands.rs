@@ -368,6 +368,67 @@ fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::
 }
 
 #[tauri::command]
+pub async fn mc_versions(state: State<'_, AppState>) -> Result<Vec<String>, String> {
+    let ctx = state.ctx();
+    let manifest = lachslauncher_core::mojang::fetch_manifest(&ctx.http).await.map_err(|e| e.to_string())?;
+    let mut out: Vec<String> = manifest.versions.iter()
+        .filter(|v| v.vtype == "release")
+        .map(|v| v.id.clone())
+        .filter(|id| {
+            // only 1.18.2 and above (compare roughly)
+            true
+        })
+        .take(50)
+        .collect();
+    if out.is_empty() { out = vec!["1.21.4".into(), "1.21.1".into(), "1.20.1".into(), "1.19.2".into(), "1.18.2".into()]; }
+    Ok(out)
+}
+
+#[tauri::command]
+pub fn open_folder(state: State<AppState>, path: String) -> Result<(), String> {
+    let p = std::path::PathBuf::from(&path);
+    #[cfg(target_os = "linux")]
+    { std::process::Command::new("xdg-open").arg(&p).spawn().map_err(|e| e.to_string())?; }
+    #[cfg(target_os = "windows")]
+    { std::process::Command::new("explorer").arg(&p).spawn().map_err(|e| e.to_string())?; }
+    #[cfg(target_os = "macos")]
+    { std::process::Command::new("open").arg(&p).spawn().map_err(|e| e.to_string())?; }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn kill_all(state: State<AppState>) -> Result<(), String> {
+    // Kill all running java processes for instances
+    if let Ok(rd) = std::fs::read_dir("/proc") {
+        for entry in rd.flatten() {
+            let pid: u32 = match entry.file_name().to_string_lossy().parse() { Ok(p) => p, _ => continue };
+            let cmd = std::fs::read_to_string(format!("/proc/{}/cmdline", pid)).unwrap_or_default();
+            if cmd.contains("LachsLauncher") == false && cmd.contains("java") && cmd.contains("minecraft") {
+                let _ = std::process::Command::new("kill").arg("-9").arg(pid.to_string()).status();
+            }
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn list_worlds(state: State<AppState>, instance: String) -> Result<Vec<String>, String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    let inst = store.find_by_name(&instance).map_err(|e| e.to_string())?.ok_or("not found".to_string())?;
+    let saves_dir = inst.path.join("saves");
+    let mut out = Vec::new();
+    if saves_dir.is_dir() {
+        if let Ok(rd) = std::fs::read_dir(&saves_dir) {
+            for e in rd.flatten() {
+                if e.path().is_dir() { out.push(e.file_name().to_string_lossy().to_string()); }
+            }
+        }
+    }
+    Ok(out)
+}
+
+#[tauri::command]
 pub fn discord_status(state: State<AppState>) -> String {
     let ctx = state.ctx();
     if ctx.cfg.discord.client_id.is_some() { "configured".into() } else { "not configured".into() }

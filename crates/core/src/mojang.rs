@@ -24,9 +24,9 @@ pub struct VersionInfo {
 }
 
 #[derive(serde::Deserialize)]
-struct Manifest { versions: Vec<ManifestEntry> }
+pub struct Manifest { pub versions: Vec<ManifestEntry> }
 #[derive(serde::Deserialize, Clone)]
-struct ManifestEntry { id: String, url: String, #[serde(rename="type")] vtype: String }
+pub struct ManifestEntry { pub id: String, pub url: String, #[serde(rename="type")] pub vtype: String }
 
 pub async fn fetch_manifest(client: &Client) -> Result<Manifest> {
     Ok(client.get(MANIFEST_URL).send().await?.json().await?)
