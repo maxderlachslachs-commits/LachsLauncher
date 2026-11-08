@@ -83,6 +83,15 @@ pub fn file_sha1(p: &Path) -> Result<String> {
     Ok(sha1_hex(&b))
 }
 
+pub fn toggle_mod(instance_path: &Path, dir: &str, file: &str) -> Result<String> {
+    let from = instance_path.join(dir).join(file);
+    let nf = if file.ends_with(".disabled") { file[..file.len()-9].to_string() } else { format!("{}.disabled", file) };
+    let to = instance_path.join(dir).join(&nf);
+    if !from.exists() { anyhow::bail!("file not found: {}", from.display()); }
+    fs::rename(&from, &to)?;
+    Ok(nf)
+}
+
 pub fn pick_java(cfg: &crate::config::Config, major: u8) -> Option<PathBuf> {
     for c in cfg.java_candidates(major) {
         if !c.exists() { continue; }

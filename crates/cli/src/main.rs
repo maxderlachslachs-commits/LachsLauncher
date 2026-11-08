@@ -23,6 +23,7 @@ enum Commands {
     Mcp,
     Config,
     Skin { username: String },
+    ToggleMod { instance: String, file: String, #[arg(long, default_value="mods")] dir: String },
 }
 
 #[tokio::main]
@@ -126,6 +127,11 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
             let info = lachslauncher_core::skin::fetch_skin(&ctx.http, &ctx.cfg.data_dir, &username).await?;
             println!("Skin saved: {}", info.path.display());
             println!("UUID: {}", info.uuid);
+        }
+        Commands::ToggleMod { instance, file, dir } => {
+            let inst = store.find_by_name(&instance)?.ok_or_else(|| anyhow::anyhow!("instance not found"))?;
+            let nf = lachslauncher_core::util::toggle_mod(&inst.path, &dir, &file)?;
+            println!("Toggled: {} -> {}", file, nf);
         }
     }
     Ok(())

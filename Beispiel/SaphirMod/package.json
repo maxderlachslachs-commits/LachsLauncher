@@ -1,0 +1,33 @@
+{
+  "name": "saphirmod",
+  "productName": "SaphirMod",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "dependencies": {
+    "minecraft-launcher-core": "^3.18.2",
+    "msmc": "^5.0.5",
+    "adm-zip": "^0.5.16"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "de.saphirmod.launcher",
+    "productName": "SaphirMod",
+    "files": [
+      "main.js",
+      "preload.js",
+      "discord.js",
+      "curseforge.js",
+      "renderer/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  }
+}
