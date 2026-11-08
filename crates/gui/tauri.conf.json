@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.lachs.launcher",
   "build": {
-    "frontendDist": "./ui",
+    "frontendDist": "/home/lachs/Projekte/LachsLauncher/crates/gui/ui",
     "beforeDevCommand": "",
     "beforeBuildCommand": ""
   },
