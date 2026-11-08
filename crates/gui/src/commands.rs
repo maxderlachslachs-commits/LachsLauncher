@@ -172,6 +172,49 @@ pub fn is_logged_in(state: State<AppState>) -> bool {
     !ctx.cfg.auth.username.is_empty() && ctx.cfg.auth.username != "Player" && ctx.cfg.auth.access_token.is_some()
 }
 
+#[derive(serde::Serialize)]
+pub struct ModInfo { pub file: String, pub dir: String, pub disabled: bool, pub size: u64 }
+
+#[tauri::command]
+pub fn list_mods(state: State<AppState>, instance: String) -> Result<Vec<ModInfo>, String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    let inst = store.find_by_name(&instance).map_err(|e| e.to_string())?.ok_or("not found".to_string())?;
+    let mut out = Vec::new();
+    for dir in ["mods", "resourcepacks", "shaderpacks"] {
+        let abs = inst.path.join(dir);
+        if !abs.is_dir() { continue; }
+        if let Ok(entries) = std::fs::read_dir(&abs) {
+            for e in entries.flatten() {
+                let name = e.file_name().to_string_lossy().to_string();
+                if name.starts_with('.') { continue; }
+                if dir == "mods" && !name.ends_with(".jar") && !name.ends_with(".jar.disabled") { continue; }
+                let size = e.metadata().map(|m| m.len()).unwrap_or(0);
+                out.push(ModInfo { file: name.clone(), dir: dir.to_string(), disabled: name.ends_with(".disabled"), size });
+            }
+        }
+    }
+    Ok(out)
+}
+
+#[tauri::command]
+pub fn toggle_mod_cmd(state: State<AppState>, instance: String, dir: String, file: String) -> Result<String, String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    let inst = store.find_by_name(&instance).map_err(|e| e.to_string())?.ok_or("not found".to_string())?;
+    lachslauncher_core::util::toggle_mod(&inst.path, &dir, &file).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn remove_mod(state: State<AppState>, instance: String, dir: String, file: String) -> Result<(), String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    let inst = store.find_by_name(&instance).map_err(|e| e.to_string())?.ok_or("not found".to_string())?;
+    let path = inst.path.join(&dir).join(&file);
+    if path.exists() { std::fs::remove_file(&path).map_err(|e| e.to_string())?; }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn discord_status(state: State<AppState>) -> String {
     let ctx = state.ctx();

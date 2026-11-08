@@ -44,6 +44,7 @@
           <div class="card-actions">
             <button class="btn primary" data-action="launch" data-name="${escapeAttr(i.name)}">${i.running ? "Läuft…" : "Starten"}</button>
             <button class="btn ghost" data-action="stop" data-name="${escapeAttr(i.name)}">Stop</button>
+            <button class="btn ghost" data-action="edit" data-name="${escapeAttr(i.name)}">Bearbeiten</button>
           </div>`;
         grid.appendChild(card);
       }
@@ -53,9 +54,11 @@
           if (b.dataset.action === "launch") {
             try { await invoke("launch_instance", { name }); toast("Gestartet: " + name); loadInstances(); }
             catch (e) { toast("Fehler: " + e); }
-          } else {
+          } else if (b.dataset.action === "stop") {
             try { await invoke("stop_instance", { name }); toast("Gestoppt: " + name); loadInstances(); }
             catch (e) { toast("Fehler: " + e); }
+          } else if (b.dataset.action === "edit") {
+            openModsModal(name);
           }
         });
       });
@@ -138,6 +141,42 @@
       const sw = $("#s-webhook"); if (sw) sw.value = c.discord?.webhook_url || "";
     } catch (e) { console.error("loadSettings:", e); }
   }
+
+  // Mod editing modal
+  async function openModsModal(name) {
+    const modal = $("#modal-mods"); if (!modal) return;
+    const title = $("#mods-title"); if (title) title.textContent = "Mods: " + name;
+    modal.classList.remove("hidden");
+    await refreshModsList(name);
+  }
+  async function refreshModsList(name) {
+    const list = $("#mods-list"); if (!list) return;
+    list.innerHTML = "Lade…";
+    try {
+      const mods = await invoke("list_mods", { instance: name });
+      list.innerHTML = "";
+      for (const m of mods) {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);";
+        row.innerHTML = `<span style="font-size:12px;${m.disabled?'opacity:0.4;text-decoration:line-through;':''}">${escapeHtml(m.file)}</span>
+          <div style="display:flex;gap:4px;">
+            <button class="btn ghost" data-toggle="${escapeAttr(m.file)}" data-dir="${escapeAttr(m.dir)}" data-inst="${escapeAttr(name)}">${m.disabled?'Aktivieren':'Deaktivieren'}</button>
+            <button class="btn ghost" data-remove="${escapeAttr(m.file)}" data-dir="${escapeAttr(m.dir)}" data-inst="${escapeAttr(name)}" style="color:var(--danger);">Entfernen</button>
+          </div>`;
+        list.appendChild(row);
+      }
+      list.querySelectorAll("[data-toggle]").forEach(b => b.addEventListener("click", async () => {
+        try { await invoke("toggle_mod_cmd", { instance: b.dataset.inst, dir: b.dataset.dir, file: b.dataset.toggle }); refreshModsList(name); toast("Getoggelt"); }
+        catch (e) { toast("Fehler: " + e); }
+      }));
+      list.querySelectorAll("[data-remove]").forEach(b => b.addEventListener("click", async () => {
+        if (!confirm("Mod entfernen?")) return;
+        try { await invoke("remove_mod", { instance: b.dataset.inst, dir: b.dataset.dir, file: b.dataset.remove }); refreshModsList(name); toast("Entfernt"); }
+        catch (e) { toast("Fehler: " + e); }
+      }));
+    } catch (e) { list.innerHTML = "Fehler: " + e; }
+  }
+  const btnModsClose = $("#btn-mods-close"); if (btnModsClose) btnModsClose.addEventListener("click", () => { const m = $("#modal-mods"); if (m) m.classList.add("hidden"); });
 
   // Login gate
   async function checkLogin() {
