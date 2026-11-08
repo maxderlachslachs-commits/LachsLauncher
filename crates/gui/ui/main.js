@@ -68,6 +68,15 @@
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
   function escapeAttr(s){ return escapeHtml(s); }
 
+  const btnCreate = $("#btn-create"); if (btnCreate) btnCreate.addEventListener("click", async () => {
+    const name = prompt("Instanz-Name:");
+    if (!name) return;
+    const mc = prompt("Minecraft-Version (z.B. 1.21.4):", "1.21.4");
+    if (!mc) return;
+    try { const id = await invoke("create_instance", { name, mcVersion: mc }); toast("Erstellt: " + id); loadInstances(); }
+    catch (e) { toast("Fehler: " + e); }
+  });
+
   const btnScan = $("#btn-scan"); if (btnScan) btnScan.addEventListener("click", async () => {
     try { const n = await invoke("scan_curseforge"); toast(n + " Instanzen importiert"); loadInstances(); }
     catch (e) { toast("Fehler: " + e); }
@@ -177,6 +186,29 @@
     } catch (e) { list.innerHTML = "Fehler: " + e; }
   }
   const btnModsClose = $("#btn-mods-close"); if (btnModsClose) btnModsClose.addEventListener("click", () => { const m = $("#modal-mods"); if (m) m.classList.add("hidden"); });
+
+  const btnModSearch = $("#btn-mod-search"); if (btnModSearch) btnModSearch.addEventListener("click", async () => {
+    const q = $("#mod-search").value.trim();
+    if (!q) return;
+    const res = $("#mod-search-results"); if (res) res.innerHTML = "Suche…";
+    try {
+      const mods = await invoke("search_mods", { query: q });
+      if (res) {
+        res.innerHTML = "";
+        for (const m of mods) {
+          const row = document.createElement("div");
+          row.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);";
+          row.innerHTML = `<span style="font-size:12px;">${escapeHtml(m.name)}</span><button class="btn ghost" data-install="${m.id}" style="font-size:11px;">Installieren</button>`;
+          res.appendChild(row);
+        }
+        res.querySelectorAll("[data-install]").forEach(b => b.addEventListener("click", async () => {
+          const currentInst = $("#mods-title").textContent.replace("Mods: ", "");
+          try { const f = await invoke("install_mod", { instance: currentInst, projectId: parseInt(b.dataset.install) }); toast("Installiert: " + f); refreshModsList(currentInst); }
+          catch (e) { toast("Fehler: " + e); }
+        }));
+      }
+    } catch (e) { if (res) res.innerHTML = "Fehler: " + e; }
+  });
 
   // Login gate
   async function checkLogin() {

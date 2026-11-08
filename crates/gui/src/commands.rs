@@ -229,6 +229,61 @@ pub fn remove_mod(state: State<AppState>, instance: String, dir: String, file: S
     Ok(())
 }
 
+#[derive(serde::Serialize)]
+pub struct CfMod { pub id: u64, pub name: String, pub summary: String }
+
+#[tauri::command]
+pub async fn search_mods(state: State<'_, AppState>, query: String) -> Result<Vec<CfMod>, String> {
+    let ctx = state.ctx();
+    let key = ctx.cfg.curseforge_api_key.clone().ok_or("no api key")?;
+    let cf = lachslauncher_core::curseforge::CfClient::new(ctx.http.clone(), key);
+    let v = cf.search_modpacks(&query, None).await.map_err(|e| e.to_string())?; // reuse search (classId 4471 = modpacks); need mods (6)
+    // Actually search mods classId=6
+    let url = format!("/mods/search?gameId=432&classId=6&searchFilter={}&sortField=2&sortOrder=desc&pageSize=20", urlencoding(&query));
+    let resp = cf.get(&url).await.map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for m in resp.get("data").and_then(|d| d.as_array()).cloned().unwrap_or_default() {
+        out.push(CfMod {
+            id: m.get("id").and_then(|x| x.as_u64()).unwrap_or(0),
+            name: m.get("name").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+            summary: m.get("summary").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+        });
+    }
+    Ok(out)
+}
+
+fn urlencoding(s: &str) -> String { s.chars().map(|c| if c.is_alphanumeric() { c.to_string() } else { format!("%{:02X}", c as u8) }).collect() }
+
+#[tauri::command]
+pub async fn install_mod(state: State<'_, AppState>, instance: String, project_id: u64) -> Result<String, String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    let inst = store.find_by_name(&instance).map_err(|e| e.to_string())?.ok_or("not found".to_string())?;
+    let key = ctx.cfg.curseforge_api_key.clone().ok_or("no api key")?;
+    let cf = lachslauncher_core::curseforge::CfClient::new(ctx.http.clone(), key);
+    // get latest file
+    let files = cf.get_files(project_id).await.map_err(|e| e.to_string())?;
+    let fid = files.get("data").and_then(|d| d.as_array()).and_then(|a| a.first()).and_then(|f| f.get("id").and_then(|x| x.as_u64())).ok_or("no file")?;
+    let url = cf.get_download_url(project_id, fid).await.map_err(|e| e.to_string())?;
+    let mods_dir = inst.path.join("mods");
+    std::fs::create_dir_all(&mods_dir).map_err(|e| e.to_string())?;
+    // get filename
+    let fv = cf.get_file(project_id, fid).await.map_err(|e| e.to_string())?;
+    let fname = fv.get("data").and_then(|d| d.get("fileName")).and_then(|x| x.as_str()).unwrap_or("mod.jar").to_string();
+    let dest = mods_dir.join(&fname);
+    lachslauncher_core::http::download_file(&ctx.http, &url, &dest, None).await.map_err(|e| e.to_string())?;
+    Ok(fname)
+}
+
+#[tauri::command]
+pub fn create_instance(state: State<AppState>, name: String, mc_version: String) -> Result<String, String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    let inst = lachslauncher_core::instance::Instance::new(&name, &mc_version, "vanilla", "", ctx.cfg.instances_dir.join(lachslauncher_core::util::slugify(&name)));
+    store.save(&inst).map_err(|e| e.to_string())?;
+    Ok(inst.id)
+}
+
 #[tauri::command]
 pub fn discord_status(state: State<AppState>) -> String {
     let ctx = state.ctx();

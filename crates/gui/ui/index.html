@@ -48,6 +48,7 @@
           <h1>Instanzen</h1>
           <div class="actions">
             <button id="btn-scan" class="btn ghost">CurseForge scannen</button>
+            <button id="btn-create" class="btn ghost">Instanz erstellen</button>
             <button id="btn-import" class="btn primary">Modpack hinzufügen</button>
           </div>
         </header>
@@ -120,7 +121,12 @@ POST /api/v1/modpack/install  {"target":"url-oder-code"}</pre>
   <div id="modal-mods" class="modal hidden">
     <div class="modal-card" style="width:600px;max-height:80vh;overflow:auto;">
       <h2 id="mods-title">Mods bearbeiten</h2>
-      <div id="mods-list" style="max-height:50vh;overflow:auto;margin:12px 0;"></div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input id="mod-search" type="text" placeholder="Mod suchen (CurseForge)…" style="flex:1;" />
+        <button id="btn-mod-search" class="btn primary">Suchen</button>
+      </div>
+      <div id="mod-search-results" style="max-height:20vh;overflow:auto;margin-bottom:8px;"></div>
+      <div id="mods-list" style="max-height:40vh;overflow:auto;margin:12px 0;"></div>
       <div class="modal-actions">
         <button id="btn-mods-close" class="btn ghost">Schließen</button>
       </div>
