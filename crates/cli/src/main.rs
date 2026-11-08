@@ -114,6 +114,10 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
             else { println!("installed {}", inst.name); }
         }
         Commands::Serve => {
+            // If already running, just exit successfully
+            if let Ok(resp) = ctx.http.get("http://127.0.0.1:17321/api/v1/status").send().await {
+                if resp.status().is_success() { println!("Control API already running"); return Ok(()); }
+            }
             let st = build_state(ctx.clone(), store, instances);
             lachslauncher_core::control::ControlServer::serve(st).await?;
         }
