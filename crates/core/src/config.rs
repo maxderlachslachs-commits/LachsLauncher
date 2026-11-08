@@ -47,6 +47,8 @@ pub struct Config {
     pub curseforge_api_key: Option<String>,
     #[serde(default)]
     pub auth_client_id: Option<String>,
+    #[serde(default)]
+    pub has_logged_in: bool,
     pub auth: AuthConfig,
     pub discord: DiscordConfig,
     pub control: ControlConfig,
@@ -72,6 +74,7 @@ impl Config {
             discord: DiscordConfig::default(),
             control: ControlConfig::default(),
             reuse_curseforge_install: true,
+            has_logged_in: false,
             curseforge_install: None,
             close_after_launch: false,
         };

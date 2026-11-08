@@ -107,7 +107,7 @@ pub fn scan_curseforge(state: State<AppState>) -> Result<u32, String> {
 pub fn get_config(state: State<AppState>) -> Config { state.ctx().cfg.as_ref().clone() }
 
 #[derive(Deserialize)]
-pub struct ConfigUpdate { pub username: Option<String>, pub memory_mb: Option<u32>, pub api_key: Option<String>, pub discord_client_id: Option<String>, pub webhook_url: Option<String> }
+pub struct ConfigUpdate { pub username: Option<String>, pub memory_mb: Option<u32>, pub api_key: Option<String>, pub discord_client_id: Option<String>, pub webhook_url: Option<String>, pub has_logged_in: Option<bool> }
 
 #[tauri::command]
 pub fn set_config(state: State<AppState>, update: ConfigUpdate) -> Result<(), String> {
@@ -117,6 +117,7 @@ pub fn set_config(state: State<AppState>, update: ConfigUpdate) -> Result<(), St
     if let Some(k) = update.api_key { cfg.curseforge_api_key = Some(k); }
     if let Some(d) = update.discord_client_id { cfg.discord.client_id = Some(d); }
     if let Some(w) = update.webhook_url { cfg.discord.webhook_url = Some(w); }
+    if let Some(h) = update.has_logged_in { cfg.has_logged_in = h; }
     cfg.save().map_err(|e| e.to_string())?;
     *state.ctx.lock().unwrap() = Some(Context::new(cfg).unwrap());
     Ok(())
@@ -155,21 +156,34 @@ pub async fn fetch_skin(state: State<'_, AppState>, username: String) -> Result<
 pub async fn login(state: State<'_, AppState>) -> Result<String, String> {
     let ctx = state.ctx();
     let client_id = ctx.cfg.auth_client_id.clone().unwrap_or_else(|| "00000000402b5328".to_string());
-    let auth = lachslauncher_core::auth::device_code_flow(&ctx.http, &client_id).await.map_err(|e| e.to_string())?;
-    let mut cfg = ctx.cfg.as_ref().clone();
-    cfg.auth.username = auth.username.clone();
-    cfg.auth.uuid = auth.uuid.clone();
-    cfg.auth.access_token = Some(auth.access_token);
-    cfg.auth_client_id = Some(client_id);
-    cfg.save().map_err(|e| e.to_string())?;
-    *state.ctx.lock().unwrap() = Some(lachslauncher_core::Context::new(cfg).unwrap());
-    Ok(format!("{} ({})", auth.username, auth.uuid))
+    match lachslauncher_core::auth::device_code_flow(&ctx.http, &client_id).await {
+        Ok(auth) => {
+            let mut cfg = ctx.cfg.as_ref().clone();
+            cfg.auth.username = auth.username.clone();
+            cfg.auth.uuid = auth.uuid.clone();
+            cfg.auth.access_token = Some(auth.access_token);
+            cfg.auth_client_id = Some(client_id);
+            cfg.has_logged_in = true;
+            cfg.save().map_err(|e| e.to_string())?;
+            *state.ctx.lock().unwrap() = Some(lachslauncher_core::Context::new(cfg).unwrap());
+            Ok(format!("{} ({})", auth.username, auth.uuid))
+        }
+        Err(e) => {
+            // Fall back to offline mode
+            let mut cfg = ctx.cfg.as_ref().clone();
+            if cfg.auth.username.is_empty() { cfg.auth.username = "Player".to_string(); }
+            cfg.has_logged_in = true;
+            cfg.save().map_err(|e2| e2.to_string())?;
+            *state.ctx.lock().unwrap() = Some(lachslauncher_core::Context::new(cfg).unwrap());
+            Err(format!("Microsoft-Login fehlgeschlagen: {}. Offline-Modus aktiviert.", e))
+        }
+    }
 }
 
 #[tauri::command]
 pub fn is_logged_in(state: State<AppState>) -> bool {
     let ctx = state.ctx();
-    !ctx.cfg.auth.username.is_empty() && ctx.cfg.auth.username != "Player" && ctx.cfg.auth.access_token.is_some()
+    ctx.cfg.has_logged_in
 }
 
 #[derive(serde::Serialize)]

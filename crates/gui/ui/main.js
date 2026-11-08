@@ -189,6 +189,15 @@
     } catch (e) { return false; }
   }
 
+  const btnOfflineGate = $("#btn-offline-gate"); if (btnOfflineGate) btnOfflineGate.addEventListener("click", async () => {
+    try {
+      await invoke("set_config", { update: { username: "Player", has_logged_in: true } });
+      const gate = $("#login-gate"); if (gate) gate.classList.add("hidden");
+      loadInstances(); loadSettings();
+      toast("Offline-Modus aktiv");
+    } catch (e) { toast("Fehler: " + e); }
+  });
+
   const btnLoginGate = $("#btn-login-gate"); if (btnLoginGate) btnLoginGate.addEventListener("click", async () => {
     const st = $("#login-gate-status"); if (st) st.textContent = "Login läuft… (Link+Code in Konsole)";
     try {
