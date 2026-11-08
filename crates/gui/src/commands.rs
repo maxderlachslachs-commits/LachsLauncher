@@ -276,10 +276,17 @@ pub async fn install_mod(state: State<'_, AppState>, instance: String, project_i
 }
 
 #[tauri::command]
-pub fn create_instance(state: State<AppState>, name: String, mc_version: String) -> Result<String, String> {
+pub fn create_instance(state: State<AppState>, name: String, mc_version: String, loader: Option<String>, loader_version: Option<String>) -> Result<String, String> {
     let ctx = state.ctx();
     let store = InstanceStore::new(&ctx.cfg);
-    let inst = lachslauncher_core::instance::Instance::new(&name, &mc_version, "vanilla", "", ctx.cfg.instances_dir.join(lachslauncher_core::util::slugify(&name)));
+    let (kind, ver) = match loader.as_deref() {
+        Some("fabric") => ("fabric", loader_version.unwrap_or_default()),
+        Some("forge") => ("forge", loader_version.unwrap_or_default()),
+        Some("neoforge") => ("neoforge", loader_version.unwrap_or_default()),
+        Some("quilt") => ("quilt", loader_version.unwrap_or_default()),
+        _ => ("vanilla", String::new()),
+    };
+    let inst = lachslauncher_core::instance::Instance::new(&name, &mc_version, kind, &ver, ctx.cfg.instances_dir.join(lachslauncher_core::util::slugify(&name)));
     store.save(&inst).map_err(|e| e.to_string())?;
     Ok(inst.id)
 }
