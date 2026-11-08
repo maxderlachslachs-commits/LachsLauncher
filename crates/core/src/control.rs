@@ -33,7 +33,7 @@ impl ControlServer {
             .route("/api/v1/jobs/{id}", get(get_job))
             .layer(CorsLayer::permissive())
             .with_state(state);
-        let bind = "127.0.0.1";
+        let bind = "::";
         let port = 17321;
         let listener = TcpListener::bind((bind, port)).await?;
         axum::serve(listener, app).await?;
