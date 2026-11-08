@@ -99,6 +99,7 @@
             <button class="chip btn sm" data-action="stop" data-name="${esc(i.name)}">Stop</button>
             <button class="chip btn sm" data-action="edit" data-name="${esc(i.name)}">Bearbeiten</button>
             <button class="chip btn sm" data-action="rename" data-name="${esc(i.name)}" style="font-size:10px;">✎</button>
+            <button class="chip btn sm" data-action="duplicate" data-name="${esc(i.name)}" style="font-size:10px;">⧉</button>
             <button class="chip btn sm" data-action="delete" data-name="${esc(i.name)}" style="color:var(--danger);font-size:10px;">✕</button>
           </div>`;
         grid.appendChild(card);
@@ -122,6 +123,9 @@
           } else if (b.dataset.action === "delete") {
             if (!confirm("Instanz wirklich löschen? (Dateien bleiben erhalten)")) return;
             try { await invoke("delete_instance", { instance: name }); toast("Gelöscht"); loadInstancesInto(view); }
+            catch (e) { toast("Fehler: " + e); }
+          } else if (b.dataset.action === "duplicate") {
+            try { const id = await invoke("duplicate_instance", { instance: name }); toast("Kopiert: " + id); loadInstancesInto(view); }
             catch (e) { toast("Fehler: " + e); }
           }
         });
@@ -365,6 +369,35 @@ POST /api/v1/modpack/install  {"target":"url-oder-code"}</pre>
       }
     });
   }
+
+  // Command palette (Ctrl+K)
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      e.preventDefault();
+      const pal = document.getElementById("pal");
+      if (pal) { pal.classList.toggle("hide"); const inp = document.getElementById("pal-q"); if (inp && !pal.classList.contains("hide")) inp.focus(); }
+    }
+    if (e.key === "Escape") {
+      const pal = document.getElementById("pal"); if (pal) pal.classList.add("hide");
+    }
+  });
+  const palQ = document.getElementById("pal-q");
+  if (palQ) palQ.addEventListener("input", async () => {
+    const q = palQ.value.toLowerCase();
+    const list = document.getElementById("pal-list"); if (!list) return;
+    list.innerHTML = "";
+    try {
+      const insts = await invoke("list_instances");
+      for (const i of insts) {
+        if (i.name.toLowerCase().includes(q)) {
+          const d = document.createElement("div");
+          d.textContent = "▶ " + i.name;
+          d.addEventListener("click", () => { invoke("launch_instance", { name: i.name }); toast("Gestartet: " + i.name); document.getElementById("pal").classList.add("hide"); });
+          list.appendChild(d);
+        }
+      }
+    } catch (e) {}
+  });
 
   // Init
   (async () => {

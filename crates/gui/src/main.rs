@@ -72,6 +72,7 @@ fn main() {
             commands::create_instance,
             commands::delete_instance,
             commands::rename_instance,
+            commands::duplicate_instance,
             commands::import_path,
             commands::minimize_window,
             commands::maximize_window,

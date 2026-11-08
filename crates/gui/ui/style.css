@@ -542,3 +542,10 @@ header .chip.sm{max-width:200px}
 .switch:active i::after{transform:scaleX(1.15)}
 
 .no-anim .rip{display:none}
+
+.palbox { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); width: 400px; max-width: 90vw; background: var(--panel); border: 1px solid var(--line2); border-radius: 12px; box-shadow: var(--shadow-lg); z-index: 200; padding: 8px; backdrop-filter: blur(20px); }
+.palbox input { width: 100%; padding: 8px 10px; border: none; background: transparent; font-size: 14px; color: var(--txt); outline: none; font-family: inherit; }
+#pal-list { max-height: 300px; overflow: auto; }
+#pal-list div { padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--txt); }
+#pal-list div:hover { background: rgba(255,255,255,.07); }
+#pal.hide { display: none; }

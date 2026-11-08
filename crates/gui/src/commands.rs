@@ -327,6 +327,40 @@ pub async fn import_path(state: State<'_, AppState>, path: String) -> Result<Str
 }
 
 #[tauri::command]
+pub fn duplicate_instance(state: State<AppState>, instance: String) -> Result<String, String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    let inst = store.find_by_name(&instance).map_err(|e| e.to_string())?.ok_or("not found".to_string())?;
+    let new_name = format!("{} (Kopie)", inst.name);
+    let mut new_inst = inst.clone();
+    new_inst.id = lachslauncher_core::util::slugify(&new_name);
+    new_inst.name = new_name;
+    new_inst.path = ctx.cfg.instances_dir.join(&new_inst.id);
+    // Copy instance directory
+    if inst.path.exists() && !new_inst.path.exists() {
+        copy_dir_recursive(&inst.path, &new_inst.path).map_err(|e| e.to_string())?;
+    }
+    store.save(&new_inst).map_err(|e| e.to_string())?;
+    Ok(new_inst.id)
+}
+
+fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+        if ty.is_dir() {
+            copy_dir_recursive(&src_path, &dst_path)?;
+        } else {
+            std::fs::copy(&src_path, &dst_path)?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub fn discord_status(state: State<AppState>) -> String {
     let ctx = state.ctx();
     if ctx.cfg.discord.client_id.is_some() { "configured".into() } else { "not configured".into() }
