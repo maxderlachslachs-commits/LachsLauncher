@@ -7,6 +7,7 @@ pub mod curseforge;
 pub mod launch;
 pub mod discord;
 pub mod control;
+pub mod skin;
 pub mod util;
 
 pub use config::{Config, ConfigPaths};

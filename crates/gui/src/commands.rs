@@ -145,6 +145,13 @@ pub fn maximize_window(window: tauri::Window) { let _ = if window.is_maximized()
 pub fn close_window(window: tauri::Window) { let _ = window.close(); }
 
 #[tauri::command]
+pub async fn fetch_skin(state: State<'_, AppState>, username: String) -> Result<String, String> {
+    let ctx = state.ctx();
+    let info = lachslauncher_core::skin::fetch_skin(&ctx.http, &ctx.cfg.data_dir, &username).await.map_err(|e| e.to_string())?;
+    Ok(info.path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 pub fn discord_status(state: State<AppState>) -> String {
     let ctx = state.ctx();
     if ctx.cfg.discord.client_id.is_some() { "configured".into() } else { "not configured".into() }

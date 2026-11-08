@@ -31,6 +31,7 @@ pub struct Instance {
     pub created: Option<String>,
     pub last_played: Option<String>,
     pub extra_jvm_args: Vec<String>,
+    #[serde(default)] pub disabled_mods: Vec<String>,
     #[serde(default)] pub runtime_pid: Option<u32>,
 }
 
@@ -42,7 +43,7 @@ impl Instance {
             mc_version: mc.to_string(),
             loader: LoaderSpec { kind: loader_kind.to_string(), version: loader_ver.to_string() },
             path, memory_mb: None, java: None, icon: None, modpack: None,
-            created: Some(util::now_iso()), last_played: None, extra_jvm_args: vec![], runtime_pid: None,
+            created: Some(util::now_iso()), last_played: None, extra_jvm_args: vec![], disabled_mods: vec![], runtime_pid: None,
         }
     }
     pub fn loader_profile_id(&self) -> String {
@@ -114,6 +115,15 @@ pub fn import_curseforge_instance(cfg: &Config, cf_instance_dir: &Path) -> Resul
             }
         }
     }
+    // collect disabled mods (isEnabled == false)
+    let disabled_mods: Vec<String> = d.get("installedAddons").and_then(|a| a.as_array()).map(|arr| {
+        arr.iter().filter_map(|x| {
+            if x.get("isEnabled").and_then(|v| v.as_bool()) == Some(false) {
+                x.get("fileNameOnDisk").and_then(|v| v.as_str()).map(String::from)
+            } else { None }
+        }).collect()
+    }).unwrap_or_default();
+
     let modpack = d.get("installedModpack").and_then(|m| {
         if m.is_null() { None } else {
             Some(ModpackRef {
@@ -127,6 +137,7 @@ pub fn import_curseforge_instance(cfg: &Config, cf_instance_dir: &Path) -> Resul
     });
     let mut inst = Instance::new(&name, &mc, &kind, &ver, cf_instance_dir.to_path_buf());
     inst.modpack = modpack;
+    inst.disabled_mods = disabled_mods;
     if let Some(mem) = d.get("allocatedMemory").and_then(|x| x.as_u64()) { inst.memory_mb = Some(mem as u32); }
     Ok(inst)
 }

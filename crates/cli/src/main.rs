@@ -22,6 +22,7 @@ enum Commands {
     Serve,
     Mcp,
     Config,
+    Skin { username: String },
 }
 
 #[tokio::main]
@@ -120,6 +121,11 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
         }
         Commands::Config => {
             println!("{}", serde_json::to_string_pretty(ctx.cfg.as_ref())?);
+        }
+        Commands::Skin { username } => {
+            let info = lachslauncher_core::skin::fetch_skin(&ctx.http, &ctx.cfg.data_dir, &username).await?;
+            println!("Skin saved: {}", info.path.display());
+            println!("UUID: {}", info.uuid);
         }
     }
     Ok(())

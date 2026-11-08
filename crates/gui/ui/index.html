@@ -27,6 +27,7 @@
         <button class="nav active" data-view="library">Bibliothek</button>
         <button class="nav" data-view="discover">Entdecken</button>
         <button class="nav" data-view="deckboard">Deckboard</button>
+        <button class="nav" data-view="skins">Skins</button>
         <button class="nav" data-view="settings">Einstellungen</button>
       </nav>
       <div class="side-foot">
@@ -55,6 +56,16 @@
           <button id="btn-search" class="btn primary">Suchen</button>
         </div>
         <div id="discover-results" class="grid"></div>
+      </section>
+
+      <section id="view-skins" class="view">
+        <header class="view-header"><h1>Skin-Wechsler</h1></header>
+        <div class="card glass form">
+          <label>Minecraft-Benutzername<input id="skin-name" type="text" placeholder="z.B. Notch" /></label>
+          <button id="btn-skin-fetch" class="btn primary">Skin laden</button>
+          <div id="skin-preview" style="margin-top:12px;"></div>
+          <div id="skin-status" class="status"></div>
+        </div>
       </section>
 
       <section id="view-deckboard" class="view">

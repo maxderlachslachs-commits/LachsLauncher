@@ -96,7 +96,6 @@ pub async fn install_modpack_zip(
         let pid = f.get("projectID").and_then(|x| x.as_u64()).unwrap_or(0);
         let fid = f.get("fileID").and_then(|x| x.as_u64()).unwrap_or(0);
         let required = f.get("required").and_then(|x| x.as_bool()).unwrap_or(true);
-        if !required { continue; }
         if pid == 0 || fid == 0 { continue; }
         // resolve filename + url
         let (fname, url) = if let Some(c) = cf {
@@ -114,6 +113,10 @@ pub async fn install_modpack_zip(
         };
         let dest = mods_dir.join(&fname);
         let _ = http::download_file(client, &url, &dest, None).await;
+        if !required {
+            let disabled = mods_dir.join(format!("{}.disabled", fname));
+            if dest.exists() && !disabled.exists() { let _ = std::fs::rename(&dest, &disabled); }
+        }
     }
 
     // install loader

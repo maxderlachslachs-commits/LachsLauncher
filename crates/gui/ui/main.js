@@ -86,6 +86,18 @@ $("#btn-search").addEventListener("click", async () => {
   res.innerHTML = "<p style='color:var(--muted)'>Suche wird über CurseForge-API (CLI) empfohlen: lachslauncher install &lt;url&gt;</p>";
 });
 
+$("#btn-skin-fetch").addEventListener("click", async () => {
+  const name = $("#skin-name").value.trim();
+  if (!name) return;
+  $("#skin-status").textContent = "Lade…";
+  try {
+    const path = await invoke("fetch_skin", { username: name });
+    $("#skin-status").textContent = "Gespeichert: " + path;
+    const src = window.__TAURI__.core.convertFileSrc(path);
+    $("#skin-preview").innerHTML = `<img src="${src}" width="128" height="128" style="border-radius:12px;border:1px solid var(--border);" />`;
+  } catch (e) { $("#skin-status").textContent = "Fehler: " + e; }
+});
+
 $("#btn-save-settings").addEventListener("click", async () => {
   try {
     await invoke("set_config", { update: {

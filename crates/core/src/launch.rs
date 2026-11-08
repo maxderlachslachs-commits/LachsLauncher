@@ -66,6 +66,14 @@ pub async fn launch_instance(
     std::fs::create_dir_all(&natives_dir)?;
     extract_natives(&info, root, &natives_dir)?;
 
+    // Disable mods marked disabled in the instance
+    let mods_dir = inst.path.join("mods");
+    for m in &inst.disabled_mods {
+        let src = mods_dir.join(m);
+        let dst = mods_dir.join(format!("{}.disabled", m));
+        if src.exists() && !dst.exists() { let _ = std::fs::rename(&src, &dst); }
+    }
+
     // java
     let java_major = info.java_major;
     let java = inst.java.clone()
@@ -223,6 +231,22 @@ pub async fn launch_instance(
     let mut child = cmd.spawn().context("spawn minecraft")?;
     let pid = child.id();
     mgr.running.lock().unwrap().insert(inst.id.clone(), (child, pid, util::now_iso(), log_file));
+
+    // Re-enable disabled mods after the process exits
+    let disabled = inst.disabled_mods.clone();
+    let ipath = inst.path.clone();
+    let wpid = pid;
+    std::thread::spawn(move || {
+        while std::path::Path::new(&format!("/proc/{}", wpid)).exists() {
+            std::thread::sleep(std::time::Duration::from_secs(2));
+        }
+        let mods_dir = ipath.join("mods");
+        for m in &disabled {
+            let src = mods_dir.join(format!("{}.disabled", m));
+            let dst = mods_dir.join(m);
+            if src.exists() && !dst.exists() { let _ = std::fs::rename(&src, &dst); }
+        }
+    });
     // Discord
     if cfg.discord.enabled {
         if let Some(cid) = cfg.discord.client_id.clone() {
