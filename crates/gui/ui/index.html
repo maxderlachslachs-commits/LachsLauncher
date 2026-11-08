@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' file: https://cdn.modrinth.com data: https://crafatar.com; style-src 'self' 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' file: https://cdn.modrinth.com https://crafatar.com data:; style-src 'self' 'unsafe-inline'">
 <title>LachsLauncher</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -31,47 +31,59 @@
   <footer><span id="status">Bereit</span><span id="hintkeys">Strg + K  Suche</span><div id="prog"><i></i></div></footer>
 </div>
 
-<div id="login-gate" class="login-gate">
+<div id="login-gate" class="login-gate hidden">
   <div class="login-card">
     <img src="logo.svg" alt="" style="width:64px;height:64px;border-radius:16px;margin-bottom:16px;" />
     <h1>LachsLauncher</h1>
     <p>Melde dich mit deinem Microsoft-Account an, um fortzufahren.</p>
-    <button id="btn-login-gate" class="btn primary">Mit Microsoft anmelden</button>
+    <button id="btn-login-gate" class="btn primary" style="width:100%;">Mit Microsoft anmelden</button>
     <button id="btn-offline-gate" class="btn ghost" style="margin-top:8px;width:100%;">Offline spielen</button>
     <div id="login-gate-status" class="status" style="margin-top:12px;"></div>
   </div>
 </div>
 
-<div id="modal-import" class="modal hidden">
-  <div class="modal-card">
-    <h2>Modpack hinzufügen</h2>
-    <p>CurseForge-URL, Projekt-ID, Code oder Pfad zu einer .zip</p>
-    <input id="import-target" type="text" placeholder="https://www.curseforge.com/minecraft/modpacks/..." />
-    <input id="import-name" type="text" placeholder="Name (optional)" />
-    <div class="modal-actions">
-      <button id="btn-import-cancel" class="btn ghost">Abbrechen</button>
-      <button id="btn-import-ok" class="btn primary">Installieren</button>
+<div id="modal-import" class="hide">
+  <div class="dlg">
+    <h2>Neues Modpack</h2>
+    <label>Name<input id="m-name" class="search" placeholder="Mein Modpack" maxlength="40" autocomplete="off" spellcheck="false"></label>
+    <label>Minecraft-Version<select id="m-ver" class="chip"></select></label>
+    <div class="lbl">Cover (optional)</div>
+    <div class="covpick"><button id="m-cover" class="chip btn sm">Bild wählen</button><span id="m-covname">Kein Bild</span></div>
+    <div class="row">
+      <button id="m-cancel" class="chip btn">Abbrechen</button>
+      <button id="m-ok" class="chip play">Erstellen</button>
     </div>
     <div id="import-status" class="status"></div>
   </div>
 </div>
 
-<div id="modal-mods" class="modal hidden">
-  <div class="modal-card" style="width:600px;max-height:80vh;overflow:auto;">
+<div id="modal-mods" class="hide">
+  <div class="dlg wide" id="pbox">
     <h2 id="mods-title">Mods bearbeiten</h2>
     <div style="display:flex;gap:6px;margin-bottom:8px;">
-      <input id="mod-search" type="text" placeholder="Mod suchen (CurseForge)…" style="flex:1;" />
-      <button id="btn-mod-search" class="btn primary">Suchen</button>
+      <input id="mod-search" class="search" placeholder="Mod suchen (CurseForge)…" style="flex:1;" />
+      <button id="btn-mod-search" class="chip play sm">Suchen</button>
     </div>
     <div id="mod-search-results" style="max-height:20vh;overflow:auto;margin-bottom:8px;"></div>
     <div id="mods-list" style="max-height:40vh;overflow:auto;margin:12px 0;"></div>
-    <div class="modal-actions">
-      <button id="btn-mods-close" class="btn ghost">Schließen</button>
+    <div class="row">
+      <button id="btn-mods-close" class="chip btn">Schließen</button>
     </div>
   </div>
 </div>
 
-<div id="toast" class="toast hidden"></div>
+<div id="cmodal" class="hide">
+  <div class="dlg">
+    <h2 id="c-title">Bestätigen</h2>
+    <p id="c-text" class="hint"></p>
+    <div class="row">
+      <button id="c-no" class="chip btn">Abbrechen</button>
+      <button id="c-yes" class="chip danger">Löschen</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
 
 <script src="main.js"></script>
 </body>
