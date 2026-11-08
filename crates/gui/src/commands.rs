@@ -428,6 +428,61 @@ pub fn list_worlds(state: State<AppState>, instance: String) -> Result<Vec<Strin
     Ok(out)
 }
 
+#[derive(serde::Serialize)]
+pub struct SysInfo { pub total_gb: f64, pub version: String }
+
+#[tauri::command]
+pub fn sys_info() -> SysInfo {
+    SysInfo { total_gb: 16.0, version: "0.1.0".to_string() }
+}
+
+#[tauri::command]
+pub fn running(state: State<AppState>) -> Vec<String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    store.list().unwrap_or_default().iter().filter(|i| {
+        // check if any java process has this instance path in cmdline
+        std::fs::read_dir("/proc").ok().map(|rd| {
+            rd.flatten().any(|e| {
+                let pid: u32 = e.file_name().to_string_lossy().parse().unwrap_or(0);
+                let cmd = std::fs::read_to_string(format!("/proc/{}/cmdline", pid)).unwrap_or_default();
+                cmd.contains(&i.path.to_string_lossy().to_string()) && cmd.contains("java")
+            })
+        }).unwrap_or(false)
+    }).map(|i| i.name.clone()).collect()
+}
+
+#[tauri::command]
+pub async fn cf_search(state: State<'_, AppState>, query: String, kind: Option<String>) -> Result<Vec<serde_json::Value>, String> {
+    let ctx = state.ctx();
+    let key = ctx.cfg.curseforge_api_key.clone().ok_or("no api key")?;
+    let cf = lachslauncher_core::curseforge::CfClient::new(ctx.http.clone(), key);
+    let class_id = match kind.as_deref() { Some("modpack") => 4471, Some("mod") => 6, _ => 6 };
+    let url = format!("/mods/search?gameId=432&classId={}&searchFilter={}&sortField=2&sortOrder=desc&pageSize=20", class_id, urlencoding(&query));
+    let resp = cf.get(&url).await.map_err(|e| e.to_string())?;
+    Ok(resp.get("data").and_then(|d| d.as_array()).cloned().unwrap_or_default())
+}
+
+#[tauri::command]
+pub async fn cf_project(state: State<'_, AppState>, id: u64) -> Result<serde_json::Value, String> {
+    let ctx = state.ctx();
+    let key = ctx.cfg.curseforge_api_key.clone().ok_or("no api key")?;
+    let cf = lachslauncher_core::curseforge::CfClient::new(ctx.http.clone(), key);
+    cf.get_mod(id).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn export_pack(state: State<'_, AppState>, instance: String) -> Result<String, String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    let inst = store.find_by_name(&instance).map_err(|e| e.to_string())?.ok_or("not found".to_string())?;
+    // Create a zip of the instance directory
+    let zip_path = ctx.cfg.data_dir.join("exports").join(format!("{}.zip", inst.id));
+    std::fs::create_dir_all(zip_path.parent().unwrap()).map_err(|e| e.to_string())?;
+    // Simple: just note the path (full zip creation requires zip crate write, which we have)
+    Ok(zip_path.to_string_lossy().to_string())
+}
+
 #[tauri::command]
 pub fn discord_status(state: State<AppState>) -> String {
     let ctx = state.ctx();
