@@ -27,10 +27,10 @@ impl ControlServer {
         let app = Router::new()
             .route("/api/v1/status", get(status))
             .route("/api/v1/instances", get(list_instances))
-            .route("/api/v1/instances/:id/launch", post(launch_instance))
-            .route("/api/v1/instances/:id/stop", post(stop_instance))
+            .route("/api/v1/instances/{id}/launch", post(launch_instance))
+            .route("/api/v1/instances/{id}/stop", post(stop_instance))
             .route("/api/v1/modpack/install", post(install_modpack))
-            .route("/api/v1/jobs/:id", get(get_job))
+            .route("/api/v1/jobs/{id}", get(get_job))
             .layer(CorsLayer::permissive())
             .with_state(state);
         let bind = "127.0.0.1";
