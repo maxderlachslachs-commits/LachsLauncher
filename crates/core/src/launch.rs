@@ -89,7 +89,7 @@ pub async fn launch_instance(
     // variables
     let username = &cfg.auth.username;
     let uuid = if cfg.auth.uuid.is_empty() { offline_uuid(username) } else { cfg.auth.uuid.clone() };
-    let access_token = "0";
+    let access_token = cfg.auth.access_token.clone().unwrap_or_else(|| "0".to_string());
     let user_type = "legacy";
     let version_type = "release";
     let game_dir = &inst.path;
@@ -183,7 +183,7 @@ pub async fn launch_instance(
         for a in &raw_game {
             match a {
                 Value::String(s) => {
-                    let s = substitute_game(s, username, version_name, game_dir, &assets_root, asset_index_name, &uuid, access_token, user_type, version_type, "854", "480");
+                    let s = substitute_game(s, username, version_name, game_dir, &assets_root, asset_index_name, &uuid, &access_token, user_type, version_type, "854", "480");
                     game_args.push(s);
                 }
                 Value::Object(o) => {
@@ -193,11 +193,11 @@ pub async fn launch_instance(
                     if let Some(val) = o.get("value") {
                         let push = |v: &Value, out: &mut Vec<String>| {
                             if let Value::String(s) = v {
-                                out.push(substitute_game(s, username, version_name, game_dir, &assets_root, asset_index_name, &uuid, access_token, user_type, version_type, "854", "480"));
+                                out.push(substitute_game(s, username, version_name, game_dir, &assets_root, asset_index_name, &uuid, &access_token, user_type, version_type, "854", "480"));
                             } else if let Value::Array(arr) = v {
                                 for x in arr {
                                     if let Value::String(s) = x {
-                                        out.push(substitute_game(s, username, version_name, game_dir, &assets_root, asset_index_name, &uuid, access_token, user_type, version_type, "854", "480"));
+                                        out.push(substitute_game(s, username, version_name, game_dir, &assets_root, asset_index_name, &uuid, &access_token, user_type, version_type, "854", "480"));
                                     }
                                 }
                             }

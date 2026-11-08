@@ -35,6 +35,7 @@ fn main() {
             commands::set_config,
             commands::get_logs,
             commands::fetch_skin,
+            commands::login,
             commands::minimize_window,
             commands::maximize_window,
             commands::close_window,

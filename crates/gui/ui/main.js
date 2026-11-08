@@ -98,6 +98,15 @@ $("#btn-skin-fetch").addEventListener("click", async () => {
   } catch (e) { $("#skin-status").textContent = "Fehler: " + e; }
 });
 
+$("#btn-login").addEventListener("click", async () => {
+  $("#login-status").textContent = "Login läuft… (siehe Konsole für Link+Code)";
+  try {
+    const r = await invoke("login");
+    $("#login-status").textContent = "Eingeloggt: " + r;
+    toast("Login OK: " + r);
+  } catch (e) { $("#login-status").textContent = "Fehler: " + e; toast("Login-Fehler: " + e); }
+});
+
 $("#btn-save-settings").addEventListener("click", async () => {
   try {
     await invoke("set_config", { update: {

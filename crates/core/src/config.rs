@@ -7,10 +7,12 @@ use std::fs;
 pub struct AuthConfig {
     pub username: String,
     pub uuid: String,
+    #[serde(default)]
+    pub access_token: Option<String>,
 }
 impl Default for AuthConfig {
     fn default() -> Self {
-        Self { username: "Player".into(), uuid: String::new() }
+        Self { username: "Player".into(), uuid: String::new(), access_token: None }
     }
 }
 
@@ -43,6 +45,8 @@ pub struct Config {
     pub default_memory_mb: u32,
     pub extra_jvm_args: Vec<String>,
     pub curseforge_api_key: Option<String>,
+    #[serde(default)]
+    pub auth_client_id: Option<String>,
     pub auth: AuthConfig,
     pub discord: DiscordConfig,
     pub control: ControlConfig,
@@ -63,7 +67,8 @@ impl Config {
             default_memory_mb: 4096,
             extra_jvm_args: vec![],
             curseforge_api_key: std::env::var("CURSEFORGE_API_KEY").ok(),
-            auth: AuthConfig::default(),
+            auth_client_id: Some("00000000402b5328".to_string()),
+            auth: AuthConfig { username: "Player".into(), ..Default::default() },
             discord: DiscordConfig::default(),
             control: ControlConfig::default(),
             reuse_curseforge_install: true,

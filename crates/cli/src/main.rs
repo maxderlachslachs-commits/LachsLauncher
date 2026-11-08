@@ -24,6 +24,7 @@ enum Commands {
     Config,
     Skin { username: String },
     ToggleMod { instance: String, file: String, #[arg(long, default_value="mods")] dir: String },
+    Login,
 }
 
 #[tokio::main]
@@ -136,6 +137,19 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
             let inst = store.find_by_name(&instance)?.ok_or_else(|| anyhow::anyhow!("instance not found"))?;
             let nf = lachslauncher_core::util::toggle_mod(&inst.path, &dir, &file)?;
             println!("Toggled: {} -> {}", file, nf);
+        }
+        Commands::Login => {
+            let client_id = ctx.cfg.auth_client_id.clone().unwrap_or_else(|| "00000000402b5328".to_string());
+            println!("Starting Microsoft login...");
+            let auth = lachslauncher_core::auth::device_code_flow(&ctx.http, &client_id).await?;
+            println!("Logged in as {} (UUID: {})", auth.username, auth.uuid);
+            let mut cfg = ctx.cfg.as_ref().clone();
+            cfg.auth.username = auth.username;
+            cfg.auth.uuid = auth.uuid;
+            cfg.auth.access_token = Some(auth.access_token);
+            cfg.auth_client_id = Some(client_id);
+            cfg.save()?;
+            println!("Saved to config.");
         }
     }
     Ok(())

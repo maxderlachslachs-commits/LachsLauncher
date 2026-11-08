@@ -152,6 +152,21 @@ pub async fn fetch_skin(state: State<'_, AppState>, username: String) -> Result<
 }
 
 #[tauri::command]
+pub async fn login(state: State<'_, AppState>) -> Result<String, String> {
+    let ctx = state.ctx();
+    let client_id = ctx.cfg.auth_client_id.clone().unwrap_or_else(|| "00000000402b5328".to_string());
+    let auth = lachslauncher_core::auth::device_code_flow(&ctx.http, &client_id).await.map_err(|e| e.to_string())?;
+    let mut cfg = ctx.cfg.as_ref().clone();
+    cfg.auth.username = auth.username.clone();
+    cfg.auth.uuid = auth.uuid.clone();
+    cfg.auth.access_token = Some(auth.access_token);
+    cfg.auth_client_id = Some(client_id);
+    cfg.save().map_err(|e| e.to_string())?;
+    *state.ctx.lock().unwrap() = Some(lachslauncher_core::Context::new(cfg).unwrap());
+    Ok(format!("{} ({})", auth.username, auth.uuid))
+}
+
+#[tauri::command]
 pub fn discord_status(state: State<AppState>) -> String {
     let ctx = state.ctx();
     if ctx.cfg.discord.client_id.is_some() { "configured".into() } else { "not configured".into() }
