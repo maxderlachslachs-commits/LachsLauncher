@@ -80,6 +80,8 @@ fn main() {
             commands::cf_search,
             commands::cf_project,
             commands::export_pack,
+            commands::set_cover,
+            commands::clear_cover,
             commands::rename_instance,
             commands::duplicate_instance,
             commands::import_path,

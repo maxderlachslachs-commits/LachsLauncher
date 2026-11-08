@@ -476,11 +476,71 @@ pub async fn export_pack(state: State<'_, AppState>, instance: String) -> Result
     let ctx = state.ctx();
     let store = InstanceStore::new(&ctx.cfg);
     let inst = store.find_by_name(&instance).map_err(|e| e.to_string())?.ok_or("not found".to_string())?;
-    // Create a zip of the instance directory
     let zip_path = ctx.cfg.data_dir.join("exports").join(format!("{}.zip", inst.id));
     std::fs::create_dir_all(zip_path.parent().unwrap()).map_err(|e| e.to_string())?;
-    // Simple: just note the path (full zip creation requires zip crate write, which we have)
+    // Create zip of instance directory (excluding logs and cache)
+    let file = std::fs::File::create(&zip_path).map_err(|e| e.to_string())?;
+    let mut zip = zip::ZipWriter::new(file);
+    let opts = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    let base = &inst.path;
+    for entry in walkdir(base) {
+        let rel = entry.strip_prefix(base).unwrap_or(&entry);
+        let rel_str = rel.to_string_lossy().replace('\\', "/");
+        if entry.is_dir() {
+            let _ = zip.add_directory(format!("{}/", rel_str), opts);
+        } else {
+            if let Ok(data) = std::fs::read(&entry) {
+                let _ = zip.start_file(rel_str, opts);
+                use std::io::Write;
+                let _ = zip.write_all(&data);
+            }
+        }
+    }
+    zip.finish().map_err(|e| e.to_string())?;
     Ok(zip_path.to_string_lossy().to_string())
+}
+
+fn walkdir(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut out = Vec::new();
+    if let Ok(rd) = std::fs::read_dir(dir) {
+        for e in rd.flatten() {
+            let p = e.path();
+            let name = e.file_name().to_string_lossy().to_string();
+            if name == "logs" || name == "crash-reports" { continue; }
+            if p.is_dir() { out.push(p.clone()); out.extend(walkdir(&p)); }
+            else { out.push(p); }
+        }
+    }
+    out
+}
+
+#[tauri::command]
+pub fn set_cover(state: State<AppState>, instance: String, path: String) -> Result<String, String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    let mut inst = store.find_by_name(&instance).map_err(|e| e.to_string())?.ok_or("not found".to_string())?;
+    // Copy cover image to instance dir
+    let src = std::path::PathBuf::from(&path);
+    if !src.exists() { return Err("file not found".to_string()); }
+    let ext = src.extension().and_then(|e| e.to_str()).unwrap_or("png");
+    let dest = inst.path.join(format!("cover.{}", ext));
+    std::fs::copy(&src, &dest).map_err(|e| e.to_string())?;
+    inst.icon = Some(dest.to_string_lossy().to_string());
+    store.save(&inst).map_err(|e| e.to_string())?;
+    Ok(dest.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn clear_cover(state: State<AppState>, instance: String) -> Result<(), String> {
+    let ctx = state.ctx();
+    let store = InstanceStore::new(&ctx.cfg);
+    let mut inst = store.find_by_name(&instance).map_err(|e| e.to_string())?.ok_or("not found".to_string())?;
+    if let Some(icon) = &inst.icon {
+        let _ = std::fs::remove_file(icon);
+    }
+    inst.icon = None;
+    store.save(&inst).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
