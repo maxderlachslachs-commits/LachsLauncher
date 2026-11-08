@@ -1,140 +1,78 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' file: https://cdn.modrinth.com data: https://crafatar.com; style-src 'self' 'unsafe-inline'">
 <title>LachsLauncher</title>
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="login-gate" class="login-gate">
-    <div class="login-card">
-      <img src="logo.svg" alt="" style="width:64px;height:64px;border-radius:16px;margin-bottom:16px;" />
-      <h1>LachsLauncher</h1>
-      <p>Melde dich mit deinem Microsoft-Account an, um fortzufahren.</p>
-      <button id="btn-login-gate" class="btn primary">Mit Microsoft anmelden</button>
-      <button id="btn-offline-gate" class="btn ghost" style="margin-top:8px;width:100%;">Offline spielen</button>
-      <div id="login-gate-status" class="status" style="margin-top:12px;"></div>
+<div class="app">
+  <div id="bgimg"></div>
+  <div id="bgdim"></div>
+  <div class="fx" aria-hidden="true"><i></i><i></i></div>
+  <aside id="side"><span id="navind"></span><div id="navlist"></div></aside>
+  <header class="drag">
+    <div class="left nodrag">
+      <button id="hback" class="hbtn" title="Zurück" disabled><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button id="hfwd" class="hbtn" title="Vorwärts" disabled><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      <img id="applogo" class="applogo" alt="" hidden>
+      <h1>LachsLauncher<small id="ver"></small></h1>
+    </div>
+    <div class="right nodrag">
+      <button id="runchip" class="chip sm btn" title="Laufende Instanzen"><i class="dot"></i><span>Keine Instanz</span></button>
+      <button id="acct" class="chip sm btn"><canvas id="acct-av" width="20" height="20"></canvas><span id="acct-name">Anmelden</span></button>
+      <button id="min" class="win" title="Minimieren"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+      <button id="max" class="win" title="Maximieren"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></button>
+      <button id="close" class="win x" title="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </header>
+  <main id="view"></main>
+  <footer><span id="status">Bereit</span><span id="hintkeys">Strg + K  Suche</span><div id="prog"><i></i></div></footer>
+</div>
+
+<div id="login-gate" class="login-gate">
+  <div class="login-card">
+    <img src="logo.svg" alt="" style="width:64px;height:64px;border-radius:16px;margin-bottom:16px;" />
+    <h1>LachsLauncher</h1>
+    <p>Melde dich mit deinem Microsoft-Account an, um fortzufahren.</p>
+    <button id="btn-login-gate" class="btn primary">Mit Microsoft anmelden</button>
+    <button id="btn-offline-gate" class="btn ghost" style="margin-top:8px;width:100%;">Offline spielen</button>
+    <div id="login-gate-status" class="status" style="margin-top:12px;"></div>
+  </div>
+</div>
+
+<div id="modal-import" class="modal hidden">
+  <div class="modal-card">
+    <h2>Modpack hinzufügen</h2>
+    <p>CurseForge-URL, Projekt-ID, Code oder Pfad zu einer .zip</p>
+    <input id="import-target" type="text" placeholder="https://www.curseforge.com/minecraft/modpacks/..." />
+    <input id="import-name" type="text" placeholder="Name (optional)" />
+    <div class="modal-actions">
+      <button id="btn-import-cancel" class="btn ghost">Abbrechen</button>
+      <button id="btn-import-ok" class="btn primary">Installieren</button>
+    </div>
+    <div id="import-status" class="status"></div>
+  </div>
+</div>
+
+<div id="modal-mods" class="modal hidden">
+  <div class="modal-card" style="width:600px;max-height:80vh;overflow:auto;">
+    <h2 id="mods-title">Mods bearbeiten</h2>
+    <div style="display:flex;gap:6px;margin-bottom:8px;">
+      <input id="mod-search" type="text" placeholder="Mod suchen (CurseForge)…" style="flex:1;" />
+      <button id="btn-mod-search" class="btn primary">Suchen</button>
+    </div>
+    <div id="mod-search-results" style="max-height:20vh;overflow:auto;margin-bottom:8px;"></div>
+    <div id="mods-list" style="max-height:40vh;overflow:auto;margin:12px 0;"></div>
+    <div class="modal-actions">
+      <button id="btn-mods-close" class="btn ghost">Schließen</button>
     </div>
   </div>
+</div>
 
-  <div class="titlebar" data-tauri-drag-region>
-    <div class="brand">
-      <img src="logo.svg" alt="" />
-      <span>LachsLauncher</span>
-    </div>
-    <div class="win-controls">
-      <button id="btn-min" class="wc">—</button>
-      <button id="btn-max" class="wc">□</button>
-      <button id="btn-close" class="wc close">✕</button>
-    </div>
-  </div>
+<div id="toast" class="toast hidden"></div>
 
-  <div class="shell">
-    <aside class="sidebar">
-      <nav>
-        <button class="nav active" data-view="library">Bibliothek</button>
-        <button class="nav" data-view="discover">Entdecken</button>
-        <button class="nav" data-view="skins">Skins</button>
-        <button class="nav" data-view="deckboard">Deckboard</button>
-        <button class="nav" data-view="settings">Einstellungen</button>
-      </nav>
-      <div class="status-pill" id="status-pill">● bereit</div>
-    </aside>
-
-    <main class="content">
-      <section id="view-library" class="view active">
-        <header class="view-header">
-          <h1>Instanzen</h1>
-          <div class="actions">
-            <button id="btn-scan" class="btn ghost">CurseForge scannen</button>
-            <button id="btn-create" class="btn ghost">Instanz erstellen</button>
-            <button id="btn-import" class="btn primary">Modpack hinzufügen</button>
-          </div>
-        </header>
-        <div id="instance-grid" class="grid"></div>
-      </section>
-
-      <section id="view-discover" class="view">
-        <header class="view-header"><h1>Modpacks entdecken</h1></header>
-        <div class="search-row">
-          <input id="search-q" type="text" placeholder="Suche nach Modpacks…" />
-          <button id="btn-search" class="btn primary">Suchen</button>
-        </div>
-        <div id="discover-results" class="grid"></div>
-      </section>
-
-      <section id="view-skins" class="view">
-        <header class="view-header"><h1>Skins</h1></header>
-        <div class="card form">
-          <label>Minecraft-Benutzername<input id="skin-name" type="text" placeholder="z.B. Notch" /></label>
-          <button id="btn-skin-fetch" class="btn primary">Skin laden</button>
-          <div id="skin-preview" style="margin-top:12px;"></div>
-          <div id="skin-status" class="status"></div>
-        </div>
-      </section>
-
-      <section id="view-deckboard" class="view">
-        <header class="view-header"><h1>Deckboard</h1></header>
-        <div class="card">
-          <h2>HTTP-API</h2>
-          <p>Der Launcher hört auf <code>http://localhost:17321</code>. Deckboard-Buttons können diese Endpunkte aufrufen.</p>
-          <pre class="code">GET  /api/v1/instances
-POST /api/v1/instances/{name}/launch
-POST /api/v1/instances/{name}/stop
-POST /api/v1/modpack/install  {"target":"url-oder-code"}</pre>
-        </div>
-      </section>
-
-      <section id="view-settings" class="view">
-        <header class="view-header"><h1>Einstellungen</h1></header>
-        <div class="card form">
-          <label>Benutzername<input id="s-username" type="text" /></label>
-          <label>RAM (MB)<input id="s-memory" type="number" /></label>
-          <label>CurseForge API-Key<input id="s-apikey" type="password" placeholder="optional" /></label>
-          <label>Discord Client-ID<input id="s-discord" type="text" placeholder="optional" /></label>
-          <label>Discord Webhook<input id="s-webhook" type="text" placeholder="optional" /></label>
-          <div style="display:flex;gap:6px;margin-top:8px;">
-            <button id="btn-save-settings" class="btn primary">Speichern</button>
-            <button id="btn-login" class="btn primary">Minecraft Login</button>
-          </div>
-          <div id="login-status" class="status"></div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <div id="modal-import" class="modal hidden">
-    <div class="modal-card">
-      <h2>Modpack hinzufügen</h2>
-      <p>CurseForge-URL, Projekt-ID, Code oder Pfad zu einer .zip</p>
-      <input id="import-target" type="text" placeholder="https://www.curseforge.com/minecraft/modpacks/..." />
-      <input id="import-name" type="text" placeholder="Name (optional)" />
-      <div class="modal-actions">
-        <button id="btn-import-cancel" class="btn ghost">Abbrechen</button>
-        <button id="btn-import-ok" class="btn primary">Installieren</button>
-      </div>
-      <div id="import-status" class="status"></div>
-    </div>
-  </div>
-
-  <div id="modal-mods" class="modal hidden">
-    <div class="modal-card" style="width:600px;max-height:80vh;overflow:auto;">
-      <h2 id="mods-title">Mods bearbeiten</h2>
-      <div style="display:flex;gap:6px;margin-bottom:8px;">
-        <input id="mod-search" type="text" placeholder="Mod suchen (CurseForge)…" style="flex:1;" />
-        <button id="btn-mod-search" class="btn primary">Suchen</button>
-      </div>
-      <div id="mod-search-results" style="max-height:20vh;overflow:auto;margin-bottom:8px;"></div>
-      <div id="mods-list" style="max-height:40vh;overflow:auto;margin:12px 0;"></div>
-      <div class="modal-actions">
-        <button id="btn-mods-close" class="btn ghost">Schließen</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="toast" class="toast hidden"></div>
-
-  <script src="main.js"></script>
+<script src="main.js"></script>
 </body>
 </html>
