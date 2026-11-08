@@ -1,0 +1,6 @@
+/target
+/crates/*/target
+*.log
+.env
+.idea
+.vscode

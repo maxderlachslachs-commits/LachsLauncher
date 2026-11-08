@@ -1,0 +1,7 @@
+{
+  "name": "lachslauncher-deckboard",
+  "version": "0.1.0",
+  "description": "Deckboard extension for LachsLauncher",
+  "main": "index.js",
+  "lachslauncher": true
+}
